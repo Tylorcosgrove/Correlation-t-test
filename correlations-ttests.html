@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Correlations &amp; T-Tests – Interactive Lesson</title>
+  <style>
+    /* ── Base ──────────────────────────────────────────────────────────────── */
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f4f8;min-height:100vh}
+
+    /* ── Lesson overlay ────────────────────────────────────────────────────── */
+    #lesson-overlay{
+      position:fixed;inset:0;z-index:9999;
+      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      display:flex;align-items:center;justify-content:center;
+      padding:16px;transition:opacity .5s ease;
+    }
+    #lesson-overlay.fade-out{opacity:0;pointer-events:none}
+    #lesson-card{
+      background:#fff;border-radius:20px;max-width:820px;width:100%;
+      box-shadow:0 24px 80px rgba(0,0,0,.35);
+      display:flex;flex-direction:column;max-height:93vh;overflow:hidden;
+    }
+    #lesson-header{
+      background:linear-gradient(135deg,#667eea,#764ba2);
+      padding:16px 26px 12px;color:#fff;border-radius:20px 20px 0 0;flex-shrink:0;
+    }
+    #lesson-step-label{font-size:.72rem;opacity:.75;margin-bottom:5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase}
+    #lesson-progress-track{background:rgba(255,255,255,.25);border-radius:10px;height:5px;overflow:hidden}
+    #lesson-progress-fill{height:5px;border-radius:10px;background:#fff;transition:width .4s ease;width:0%}
+    #lesson-dots{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
+    .l-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .3s}
+    .l-dot.done{background:rgba(255,255,255,.85)}
+    .l-dot.active{background:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.45)}
+    #lesson-content{padding:24px 30px;overflow-y:auto;flex:1;min-height:0}
+    #lesson-footer{
+      padding:14px 30px;border-top:1px solid #f0f4f8;
+      display:flex;align-items:center;justify-content:space-between;
+      flex-shrink:0;background:#fafbff;border-radius:0 0 20px 20px;
+    }
+    .l-btn{padding:9px 22px;border-radius:10px;font-size:.88rem;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+    .l-btn-secondary{background:#f0f4f8;color:#4a5568}
+    .l-btn-secondary:hover{background:#e2e8f0}
+    .l-btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+    .l-btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+    .l-btn-primary:disabled{background:#cbd5e0;cursor:not-allowed;transform:none;opacity:1}
+    .l-btn-skip{background:none;border:none;color:#a0aec0;font-size:.78rem;cursor:pointer;padding:4px 8px}
+    .l-btn-skip:hover{color:#718096}
+    #lesson-content{transition:opacity .2s ease}
+    #lesson-content.fading{opacity:0}
+
+    /* ── Slide typography ──────────────────────────────────────────────────── */
+    .ls-title{font-size:1.5rem;font-weight:800;color:#2d3748;margin-bottom:6px;line-height:1.2}
+    .ls-subtitle{font-size:.93rem;color:#667eea;font-weight:600;margin-bottom:14px}
+    .ls-body{font-size:.93rem;color:#4a5568;line-height:1.7;margin-bottom:12px}
+    .ls-highlight{background:linear-gradient(135deg,#f0f0ff,#f5f0ff);border-left:4px solid #667eea;border-radius:0 10px 10px 0;padding:11px 15px;font-size:.9rem;color:#3730a3;margin:13px 0;line-height:1.6}
+    .ls-highlight strong{color:#4338ca}
+    .ls-key-points{list-style:none;padding:0;margin:12px 0}
+    .ls-key-points li{padding:7px 12px 7px 34px;position:relative;font-size:.9rem;color:#4a5568;line-height:1.5;border-radius:8px;margin-bottom:5px;background:#f7fafc}
+    .ls-key-points li::before{content:attr(data-icon);position:absolute;left:9px;top:7px;font-size:.95rem}
+    .welcome-icon{font-size:3rem;text-align:center;margin-bottom:14px;animation:bounceIn .6s ease}
+    @keyframes bounceIn{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+    .welcome-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+    .welcome-chip{padding:5px 13px;border-radius:20px;font-size:.79rem;font-weight:600;background:#f0f0ff;color:#667eea;border:1px solid #c7d2fe}
+
+    /* ── Effect size tables ────────────────────────────────────────────────── */
+    .es-table{width:100%;border-collapse:collapse;font-size:.85rem;margin:10px 0}
+    .es-table th{background:#667eea;color:#fff;padding:6px 12px;text-align:left;font-weight:600}
+    .es-table td{padding:5px 12px;border-bottom:1px solid #f0f4f8;color:#4a5568}
+    .es-table tr:last-child td{border:none}
+    .es-table tr:nth-child(even) td{background:#fafbff}
+
+    /* ── Comparison table (slide 3) ────────────────────────────────────────── */
+    .comp-table{width:100%;border-collapse:collapse;font-size:.87rem;margin:12px 0}
+    .comp-table th{padding:8px 14px;text-align:left;font-weight:700;font-size:.8rem;text-transform:uppercase;letter-spacing:.05em}
+    .comp-table th:nth-child(2){background:#e9d8fd;color:#553c9a;border-radius:6px 0 0 0}
+    .comp-table th:nth-child(3){background:#bee3f8;color:#2c5282;border-radius:0 6px 0 0}
+    .comp-table td{padding:7px 14px;border-bottom:1px solid #f0f4f8;vertical-align:top;line-height:1.5}
+    .comp-table td:nth-child(2){background:#faf5ff;color:#553c9a}
+    .comp-table td:nth-child(3){background:#ebf8ff;color:#2c5282}
+    .comp-table td:first-child{font-weight:600;color:#4a5568;background:#f7fafc;font-size:.82rem}
+    .comp-table tr:last-child td{border:none}
+    .comp-tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:600;margin:1px}
+    .comp-tag.purple{background:#e9d8fd;color:#553c9a}
+    .comp-tag.blue{background:#bee3f8;color:#2c5282}
+
+    /* ── Two-group visual (slide 2) ────────────────────────────────────────── */
+    .two-groups-wrap{text-align:center;margin:12px 0}
+
+    /* ── Scenario challenge ────────────────────────────────────────────────── */
+    .scenario-box{background:#f7fafc;border-radius:12px;border:2px solid #e2e8f0;padding:16px 18px;margin-bottom:14px}
+    .scenario-counter{font-size:.75rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+    .scenario-text{font-size:.95rem;color:#2d3748;line-height:1.6;margin-bottom:4px}
+    .scenario-vars{font-size:.82rem;color:#718096;margin-top:6px}
+    .scenario-vars span{display:inline-block;background:#edf2f7;border-radius:6px;padding:2px 9px;margin:2px;font-weight:600}
+    .scenario-btns{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .scenario-btn{flex:1;min-width:160px;padding:10px 14px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;font-size:.88rem;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;color:#4a5568}
+    .scenario-btn:hover:not(.selected){border-color:#667eea;background:#f0f0ff;color:#4338ca}
+    .scenario-btn.correct{border-color:#48bb78;background:#f0fff4;color:#276749}
+    .scenario-btn.wrong{border-color:#fc8181;background:#fff5f5;color:#742a2a}
+    .scenario-btn:disabled{cursor:not-allowed}
+    .scenario-feedback{font-size:.85rem;padding:9px 13px;border-radius:8px;margin-top:8px;display:none;line-height:1.5}
+    .scenario-feedback.show{display:block}
+    .scenario-feedback.correct{background:#f0fff4;border:1px solid #68d391;color:#276749}
+    .scenario-feedback.wrong{background:#fff5f5;border:1px solid #fc8181;color:#742a2a}
+    .scenario-progress{display:flex;gap:6px;margin-bottom:14px}
+    .sc-pip{width:10px;height:10px;border-radius:50%;background:#e2e8f0}
+    .sc-pip.done-correct{background:#48bb78}
+    .sc-pip.active{background:#667eea}
+    .vc-next-btn{display:inline-block;padding:8px 20px;border-radius:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:.85rem;font-weight:600;border:none;cursor:pointer;margin-top:10px;transition:all .15s}
+    .vc-next-btn:hover{opacity:.9}
+    .scenario-score{background:#f0f0ff;border:1px solid #c7d2fe;border-radius:10px;padding:13px 16px;text-align:center;font-size:.93rem;color:#3730a3}
+    .scenario-score strong{font-size:1.2rem;display:block;margin-bottom:4px}
+
+    /* ── Visual challenge (scatter / density) ──────────────────────────────── */
+    .vc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .vc-counter{font-size:.78rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.06em}
+    .vc-pips{display:flex;gap:6px}
+    .vc-pip{width:10px;height:10px;border-radius:50%;background:#e2e8f0}
+    .vc-pip.correct{background:#48bb78}
+    .vc-pip.wrong{background:#fc8181}
+    .vc-pip.active{background:#667eea}
+    .vc-plot{margin-bottom:12px}
+    .vc-question{font-size:.97rem;font-weight:700;color:#2d3748;margin-bottom:12px;line-height:1.5}
+    .vc-btns{display:flex;gap:10px;flex-wrap:wrap}
+    .vc-btn{flex:1;min-width:140px;padding:10px 14px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;font-size:.87rem;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;color:#4a5568}
+    .vc-btn:hover:not(:disabled){border-color:#667eea;background:#f0f0ff;color:#4338ca}
+    .vc-btn.correct{border-color:#48bb78!important;background:#f0fff4!important;color:#276749!important}
+    .vc-btn.wrong{border-color:#fc8181!important;background:#fff5f5!important;color:#742a2a!important}
+    .vc-btn:disabled{cursor:not-allowed}
+    .vc-feedback{font-size:.85rem;padding:9px 13px;border-radius:8px;margin-top:10px;display:none;line-height:1.55}
+    .vc-feedback.show{display:block}
+    .vc-feedback.correct{background:#f0fff4;border:1px solid #68d391;color:#276749}
+    .vc-feedback.wrong{background:#fff5f5;border:1px solid #fc8181;color:#742a2a}
+    .vc-score{background:#f0f0ff;border:1px solid #c7d2fe;border-radius:10px;padding:12px 16px;text-align:center;font-size:.93rem;color:#3730a3;margin-top:10px}
+    .vc-score strong{font-size:1.15rem;display:block;margin-bottom:3px}
+
+    /* ── MCQ ───────────────────────────────────────────────────────────────── */
+    .mcq-question{font-size:1rem;font-weight:700;color:#2d3748;margin-bottom:16px;line-height:1.5}
+    .mcq-options{display:flex;flex-direction:column;gap:9px;margin-bottom:12px}
+    .mcq-opt{padding:11px 15px;border-radius:10px;border:2px solid #e2e8f0;background:#fff;cursor:pointer;text-align:left;font-size:.9rem;color:#4a5568;transition:all .15s;line-height:1.45;display:flex;align-items:flex-start;gap:10px}
+    .mcq-opt:hover:not(.disabled){border-color:#667eea;background:#f0f0ff}
+    .mcq-opt.correct{border-color:#48bb78;background:#f0fff4;color:#22543d;font-weight:600}
+    .mcq-opt.wrong{border-color:#fc8181;background:#fff5f5;color:#742a2a}
+    .mcq-opt.disabled{cursor:not-allowed;opacity:.65}
+    .mcq-opt .opt-letter{min-width:23px;height:23px;border-radius:50%;background:#f0f4f8;color:#718096;font-size:.76rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+    .mcq-opt.correct .opt-letter{background:#48bb78;color:#fff}
+    .mcq-opt.wrong .opt-letter{background:#fc8181;color:#fff}
+    .mcq-feedback{padding:9px 13px;border-radius:8px;font-size:.86rem;line-height:1.5;margin-top:4px;display:none}
+    .mcq-feedback.show{display:block}
+    .mcq-feedback.correct{background:#f0fff4;border:1px solid #68d391;color:#276749}
+    .mcq-feedback.wrong{background:#fff5f5;border:1px solid #fc8181;color:#742a2a}
+
+    /* ── Jamovi output tables ───────────────────────────────────────────────── */
+    .j-output{max-width:560px;margin:0 auto;font-family:'Segoe UI',sans-serif}
+    .j-section{margin-bottom:18px}
+    .j-section-title{font-size:.88rem;font-weight:700;color:#2d3748;margin-bottom:4px;padding-bottom:3px}
+    .j-table{width:100%;border-collapse:collapse;font-size:.85rem}
+    .j-table thead tr{border-top:2px solid #2d3748;border-bottom:1px solid #2d3748}
+    .j-table tbody tr:last-child td{border-bottom:2px solid #2d3748}
+    .j-table th{padding:5px 14px;text-align:right;font-weight:700;color:#2d3748;white-space:nowrap}
+    .j-table th:first-child{text-align:left}
+    .j-table td{padding:5px 14px;text-align:right;color:#2d3748}
+    .j-table td:first-child{text-align:left;font-weight:500}
+    .j-note{font-style:italic;font-size:.78rem;color:#555;margin-top:8px;margin-bottom:8px;padding-left:2px}
+    .j-clickable{cursor:pointer;border-radius:4px;padding:1px 5px;transition:background .12s;display:inline-block}
+    .j-clickable:hover:not(.clicked){background:#fef9c3}
+    .j-clickable.clicked-r{background:#dbeafe;font-weight:700;outline:2px solid #3b82f6}
+    .j-clickable.clicked-p{background:#dcfce7;font-weight:700;outline:2px solid #22c55e}
+    .j-clickable.clicked-n{background:#f3e8ff;font-weight:700;outline:2px solid #a855f7}
+    .j-clickable.clicked-t{background:#ffedd5;font-weight:700;outline:2px solid #f97316}
+    .j-clickable.clicked-d{background:#fce7f3;font-weight:700;outline:2px solid #ec4899}
+    .j-clickable.clicked-lev{background:#ecfdf5;font-weight:700;outline:2px solid #10b981}
+    .j-clickable.clicked-df{background:#f3e8ff;font-weight:700;outline:2px solid #a855f7}
+    .j-callout-wrap{min-height:54px;margin:10px 0 4px}
+    .j-callout{padding:10px 14px;border-radius:8px;font-size:.84rem;line-height:1.5;display:none;animation:fadeSlide .2s ease}
+    .j-callout.show{display:block}
+    @keyframes fadeSlide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+    .j-callout-r{background:#dbeafe;border-left:3px solid #3b82f6;color:#1e3a8a}
+    .j-callout-p{background:#dcfce7;border-left:3px solid #22c55e;color:#14532d}
+    .j-callout-n{background:#f3e8ff;border-left:3px solid #a855f7;color:#581c87}
+    .j-callout-t{background:#ffedd5;border-left:3px solid #f97316;color:#7c2d12}
+    .j-callout-d{background:#fce7f3;border-left:3px solid #ec4899;color:#831843}
+    .j-callout-lev{background:#ecfdf5;border-left:3px solid #10b981;color:#064e3b}
+    .j-callout-df{background:#f3e8ff;border-left:3px solid #a855f7;color:#581c87}
+    .apa-builder{background:#f8f9ff;border:2px solid #c7d2fe;border-radius:10px;padding:13px 16px;margin-top:12px}
+    .apa-label{font-size:.73rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+    .apa-sentence{font-size:1rem;font-family:'Courier New',monospace;color:#2d3748;line-height:1.7;margin-bottom:6px}
+    .apa-blank{color:#cbd5e0;font-style:italic}
+    .apa-filled{color:#667eea;font-weight:700;font-style:normal}
+    .apa-interp{font-size:.84rem;color:#4a5568;line-height:1.6;min-height:1.4em;font-style:italic}
+    .j-instructions{font-size:.82rem;color:#718096;margin-bottom:10px;font-style:italic}
+    .j-progress{font-size:.79rem;color:#667eea;font-weight:600;margin-bottom:6px}
+
+    /* ── Violations table (slide 8) ────────────────────────────────────────── */
+    .viol-table{width:100%;border-collapse:collapse;font-size:.86rem;margin:12px 0}
+    .viol-table th{background:#2d3748;color:#fff;padding:7px 13px;text-align:left;font-weight:600}
+    .viol-table td{padding:7px 13px;border-bottom:1px solid #f0f4f8;line-height:1.5;vertical-align:top}
+    .viol-table td:first-child{font-weight:600;color:#e53e3e;background:#fff5f5;width:28%}
+    .viol-table td:nth-child(2){color:#4a5568;width:37%}
+    .viol-table td:nth-child(3){color:#276749;font-weight:600;background:#f0fff4;width:35%}
+    .viol-table tr:last-child td{border:none}
+
+    /* ── Done slide ────────────────────────────────────────────────────────── */
+    .done-checks{display:flex;flex-direction:column;gap:7px;margin:14px 0}
+    .done-check{display:flex;align-items:flex-start;gap:10px;padding:9px 13px;border-radius:8px;background:#f0fff4;border:1px solid #9ae6b4;font-size:.9rem;color:#276749;line-height:1.45}
+    .done-enter-btn{display:block;width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:1rem;font-weight:700;border:none;cursor:pointer;margin-top:18px;transition:all .2s;text-align:center}
+    .done-enter-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(102,126,234,.4)}
+
+    /* ── Mini scatter strip (slide 1) ──────────────────────────────────────── */
+    .mini-scatter-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+    .mini-scatter-label{text-align:center;font-size:.8rem;font-weight:700;color:#667eea;margin-top:5px}
+
+    /* ── Reference card ────────────────────────────────────────────────────── */
+    #ref-card{display:none;max-width:1000px;margin:0 auto;padding:24px 20px;font-family:'Segoe UI',system-ui,sans-serif}
+    .ref-header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border-radius:14px;padding:18px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+    .ref-header h1{font-size:1.25rem;font-weight:800}
+    .ref-header p{font-size:.82rem;opacity:.85}
+    .ref-restart{padding:7px 16px;border-radius:8px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s}
+    .ref-restart:hover{background:rgba(255,255,255,.3)}
+    .ref-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+    .ref-col{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+    .ref-col-header{font-size:1rem;font-weight:800;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid}
+    .ref-col.corr .ref-col-header{color:#553c9a;border-color:#c7d2fe}
+    .ref-col.ttest .ref-col-header{color:#2c5282;border-color:#bee3f8}
+    .ref-sub{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin:10px 0 6px}
+    .ref-col.corr .ref-sub{color:#667eea}
+    .ref-col.ttest .ref-sub{color:#3182ce}
+    .ref-checklist{list-style:none;padding:0;margin:0}
+    .ref-checklist li{font-size:.83rem;color:#4a5568;padding:4px 0 4px 22px;position:relative;border-bottom:1px solid #f7fafc;line-height:1.4}
+    .ref-checklist li::before{content:'☐';position:absolute;left:0;color:#a0aec0;font-size:.95rem}
+    .ref-checklist li:last-child{border:none}
+    .ref-apa{font-family:'Courier New',monospace;font-size:.82rem;background:#f7fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;margin:6px 0;color:#2d3748;line-height:1.6}
+    .ref-es-table{width:100%;border-collapse:collapse;font-size:.8rem;margin:6px 0}
+    .ref-es-table th{background:#f0f4f8;padding:4px 10px;text-align:left;font-weight:700;color:#4a5568;border-bottom:1px solid #e2e8f0}
+    .ref-es-table td{padding:4px 10px;border-bottom:1px solid #f7fafc;color:#4a5568}
+    .ref-es-table tr:last-child td{border:none}
+    .ref-violations{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+    .ref-violations h3{font-size:.93rem;font-weight:800;color:#2d3748;margin-bottom:10px}
+    .ref-viol-table{width:100%;border-collapse:collapse;font-size:.82rem}
+    .ref-viol-table th{background:#2d3748;color:#fff;padding:5px 12px;text-align:left;font-weight:600}
+    .ref-viol-table td{padding:5px 12px;border-bottom:1px solid #f0f4f8;vertical-align:top;line-height:1.45}
+    .ref-viol-table td:first-child{font-weight:600;color:#e53e3e}
+    .ref-viol-table td:last-child{color:#276749;font-weight:600}
+    .ref-viol-table tr:last-child td{border:none}
+    @media(max-width:640px){.ref-grid{grid-template-columns:1fr}.mini-scatter-grid{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+
+<!-- ── Lesson Overlay ─────────────────────────────────────────────────────── -->
+<div id="lesson-overlay">
+  <div id="lesson-card">
+    <div id="lesson-header">
+      <div id="lesson-step-label">Step 1 of 14</div>
+      <div id="lesson-progress-track"><div id="lesson-progress-fill"></div></div>
+      <div id="lesson-dots"></div>
+    </div>
+    <div id="lesson-content"></div>
+    <div id="lesson-footer">
+      <button class="l-btn l-btn-secondary" id="l-prev">← Back</button>
+      <button class="l-btn-skip" id="l-skip">Skip lesson</button>
+      <button class="l-btn l-btn-primary" id="l-next">Next →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Reference Card ─────────────────────────────────────────────────────── -->
+<div id="ref-card">
+  <div class="ref-header">
+    <div><h1>📊 Correlations &amp; T-Tests — Reference Card</h1><p>Keep this open while working in Jamovi</p></div>
+    <button class="ref-restart" id="ref-restart-btn">↺ Restart Lesson</button>
+  </div>
+  <div class="ref-grid">
+    <div class="ref-col corr">
+      <div class="ref-col-header">Pearson Correlation</div>
+      <div class="ref-sub">When to use</div>
+      <p style="font-size:.83rem;color:#4a5568;line-height:1.5;margin-bottom:8px">Both variables are continuous and you want to know the <strong>strength and direction</strong> of the linear relationship between them.</p>
+      <div class="ref-sub">Assumption checklist</div>
+      <ul class="ref-checklist">
+        <li>Linear relationship (check scatterplot)</li>
+        <li>Both variables approximately normal (Shapiro-Wilk, p &gt; .05)</li>
+        <li>Homoscedasticity — even spread around line (visual + Spearman if violated)</li>
+        <li>Independence — no repeated participants across groups</li>
+        <li>Both variables continuous (or one continuous, one dichotomous)</li>
+      </ul>
+      <div class="ref-sub">Effect size (r)</div>
+      <table class="ref-es-table">
+        <tr><th>|r|</th><th>Label</th></tr>
+        <tr><td>&lt; .10</td><td>Negligible</td></tr>
+        <tr><td>.10 – .29</td><td>Weak</td></tr>
+        <tr><td>.30 – .49</td><td>Moderate</td></tr>
+        <tr><td>≥ .50</td><td>Strong</td></tr>
+      </table>
+      <div class="ref-sub">APA reporting template</div>
+      <div class="ref-apa">r(<em>df</em>) = .<em>rr</em>, p = .<em>ppp</em></div>
+      <div style="font-size:.79rem;color:#718096;margin-top:4px">df = N − 2 &nbsp;|&nbsp; Always report direction and effect size label</div>
+    </div>
+    <div class="ref-col ttest">
+      <div class="ref-col-header">Independent Samples T-Test</div>
+      <div class="ref-sub">When to use</div>
+      <p style="font-size:.83rem;color:#4a5568;line-height:1.5;margin-bottom:8px">One continuous DV and one dichotomous IV. You want to know if the <strong>mean of one group differs</strong> from the mean of another.</p>
+      <div class="ref-sub">Assumption checklist</div>
+      <ul class="ref-checklist">
+        <li>DV approximately normal in each group (Shapiro-Wilk, p &gt; .05)</li>
+        <li>Homogeneity of variance — Levene's test, p &gt; .05 (if violated, use Welch's)</li>
+        <li>Independence — different participants in each group</li>
+        <li>DV continuous, IV dichotomous</li>
+      </ul>
+      <div class="ref-sub">Effect size (Cohen's d)</div>
+      <table class="ref-es-table">
+        <tr><th>d</th><th>Label</th></tr>
+        <tr><td>&lt; 0.20</td><td>Negligible</td></tr>
+        <tr><td>0.20 – 0.49</td><td>Small</td></tr>
+        <tr><td>0.50 – 0.79</td><td>Medium</td></tr>
+        <tr><td>≥ 0.80</td><td>Large</td></tr>
+      </table>
+      <div class="ref-sub">APA reporting template</div>
+      <div class="ref-apa">t(<em>df</em>) = <em>t.tt</em>, p = .<em>ppp</em>, d = <em>d.dd</em></div>
+      <div style="font-size:.79rem;color:#718096;margin-top:4px">Check descriptives for direction &nbsp;|&nbsp; d is always positive</div>
+    </div>
+  </div>
+  <div class="ref-violations">
+    <h3>⚠️ If Assumptions Are Violated</h3>
+    <table class="ref-viol-table">
+      <tr><th>Violated assumption</th><th>Test affected</th><th>What to do</th></tr>
+      <tr><td>Normality</td><td>Both</td><td>Correlation → Spearman's r &nbsp;|&nbsp; T-test → Mann-Whitney U</td></tr>
+      <tr><td>Homoscedasticity</td><td>Both</td><td>T-test → Welch's t-test (tick in Jamovi assumption checks) &nbsp;|&nbsp; Correlation → Spearman's r</td></tr>
+      <tr><td>Linearity</td><td>Correlation</td><td>Use Spearman's r (non-parametric alternative)</td></tr>
+      <tr><td>Independence</td><td>Both</td><td>Study design issue — cannot proceed, must redesign</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── JavaScript ─────────────────────────────────────────────────────────── -->
+<script>
+(function () {
+  'use strict';
+
+  /* ════════════════════════════════════════════════════════════════
+     1. UTILITIES
+  ═══════════════════════════════════════════════════════════════════ */
+  function srng(seed) {
+    let s = (seed ^ 0xDEAD) >>> 0;
+    return () => { s = Math.imul(1664525, s) + 1013904223 >>> 0; return s / 0x100000000; };
+  }
+  function srnorm(rng) {
+    let u, v, q;
+    do { u = rng()*2-1; v = rng()*2-1; q = u*u+v*v; } while (q >= 1 || q === 0);
+    return u * Math.sqrt(-2 * Math.log(q) / q);
+  }
+  function linReg(pts) {
+    const n = pts.length;
+    const mx = pts.reduce((s,p)=>s+p[0],0)/n, my = pts.reduce((s,p)=>s+p[1],0)/n;
+    const num = pts.reduce((s,p)=>s+(p[0]-mx)*(p[1]-my),0);
+    const den = pts.reduce((s,p)=>s+(p[0]-mx)**2,1e-9);
+    const sl = num/den;
+    return { slope: sl, intercept: my - sl*mx };
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     2. DATA GENERATION
+  ═══════════════════════════════════════════════════════════════════ */
+  function genCorr(seed, r, n) {
+    const rng = srng(seed), pts = [], noise = Math.sqrt(1 - r*r);
+    let tries = 0;
+    while (pts.length < n && tries++ < n*6) {
+      const z1 = srnorm(rng), z2 = srnorm(rng);
+      const x = z1*14+50, y = (r*z1 + noise*z2)*14+50;
+      if (x>=5&&x<=95&&y>=5&&y<=95) pts.push([x,y]);
+    }
+    return pts;
+  }
+  function genHeteroFan(seed, dir, n) {
+    // dir>0 = fan opens right, dir<0 = fan opens left
+    const rng = srng(seed), pts = [];
+    let tries = 0;
+    while (pts.length < n && tries++ < n*6) {
+      const x = 8 + rng()*80;
+      const spread = (dir > 0 ? (x/90)*24+3 : ((90-x)/90)*24+3);
+      const y = dir*0.42*(x-50)+50 + srnorm(rng)*spread;
+      if (y>=5&&y<=95) pts.push([x,y]);
+    }
+    return pts;
+  }
+  function genQuad(seed, n) {
+    const rng = srng(seed), pts = [];
+    let tries = 0;
+    while (pts.length < n && tries++ < n*6) {
+      const x = 8 + rng()*80;
+      const y = 0.023*(x-50)**2 + 17 + srnorm(rng)*6;
+      if (y>=5&&y<=95) pts.push([x,y]);
+    }
+    return pts;
+  }
+  function genArch(seed, n) {
+    const rng = srng(seed), pts = [];
+    let tries = 0;
+    while (pts.length < n && tries++ < n*6) {
+      const x = 8 + rng()*80;
+      const y = -0.023*(x-50)**2 + 83 + srnorm(rng)*6;
+      if (y>=5&&y<=95) pts.push([x,y]);
+    }
+    return pts;
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     3. SVG BUILDERS
+  ═══════════════════════════════════════════════════════════════════ */
+  function scatterSVG(pts, opts) {
+    opts = opts || {};
+    const vW=400, vH=280, pl=36, pr=16, pt=14, pb=38;
+    const axY = pt + vH - pt - pb;
+    const plotW = vW - pl - pr, plotH = vH - pt - pb;
+    const toX = x => pl + (x/100)*plotW;
+    const toY = y => pt + plotH - (y/100)*plotH;
+
+    let s = `<svg viewBox="0 0 ${vW} ${vH}" xmlns="http://www.w3.org/2000/svg" `
+          + `style="width:100%;max-width:440px;display:block;margin:0 auto;border-radius:8px;background:#fafbff;border:1px solid #e2e8f0">`;
+    s += `<rect x="${pl}" y="${pt}" width="${plotW}" height="${plotH}" fill="#fff"/>`;
+    // grid
+    for(let i=1;i<=3;i++){
+      const gy = toY(i*25);
+      s += `<line x1="${pl}" y1="${gy.toFixed(1)}" x2="${pl+plotW}" y2="${gy.toFixed(1)}" stroke="#f0f4f8" stroke-width="1"/>`;
+    }
+    // axes
+    s += `<line x1="${pl}" y1="${toY(0).toFixed(1)}" x2="${pl+plotW}" y2="${toY(0).toFixed(1)}" stroke="#718096" stroke-width="1.5"/>`;
+    s += `<line x1="${pl}" y1="${pt}" x2="${pl}" y2="${toY(0).toFixed(1)}" stroke="#718096" stroke-width="1.5"/>`;
+    // regression line
+    if (opts.showLine && pts.length >= 2) {
+      const {slope,intercept} = linReg(pts);
+      const y1c = Math.max(-10, Math.min(110, slope*5  + intercept));
+      const y2c = Math.max(-10, Math.min(110, slope*95 + intercept));
+      s += `<line x1="${toX(5).toFixed(1)}" y1="${toY(y1c).toFixed(1)}" `
+         + `x2="${toX(95).toFixed(1)}" y2="${toY(y2c).toFixed(1)}" `
+         + `stroke="#e53e3e" stroke-width="2.2" stroke-dasharray="6,3" opacity="0.75"/>`;
+    }
+    // dots
+    pts.forEach(([x,y]) => {
+      const sx=toX(x), sy=toY(y);
+      if(sx<pl-5||sx>pl+plotW+5||sy<pt-5||sy>toY(0)+5) return;
+      s += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="4.5" fill="${opts.color||'#667eea'}" opacity="0.72" stroke="white" stroke-width="0.8"/>`;
+    });
+    // axis labels
+    s += `<text x="${(pl+pl+plotW)/2}" y="${vH-6}" text-anchor="middle" font-size="10" fill="#a0aec0" font-family="Segoe UI,sans-serif">Variable X</text>`;
+    s += `<text x="11" y="${(pt+(pt+plotH))/2}" text-anchor="middle" font-size="10" fill="#a0aec0" font-family="Segoe UI,sans-serif" transform="rotate(-90,11,${(pt+(pt+plotH))/2})">Variable Y</text>`;
+    s += '</svg>';
+    return s;
+  }
+
+  function miniScatterSVG(pts, rLabel) {
+    const vW=120,vH=96,pl=10,pr=6,pt=6,pb=16;
+    const plotW=vW-pl-pr, plotH=vH-pt-pb;
+    const toX = x => pl+(x/100)*plotW;
+    const toY = y => pt+plotH-(y/100)*plotH;
+    let s = `<svg viewBox="0 0 ${vW} ${vH}" xmlns="http://www.w3.org/2000/svg" style="border-radius:6px;background:#fff;border:1px solid #e2e8f0;width:100%">`;
+    s += `<rect x="${pl}" y="${pt}" width="${plotW}" height="${plotH}" fill="#fafbff"/>`;
+    s += `<line x1="${pl}" y1="${toY(0).toFixed(1)}" x2="${pl+plotW}" y2="${toY(0).toFixed(1)}" stroke="#cbd5e0" stroke-width="1"/>`;
+    s += `<line x1="${pl}" y1="${pt}" x2="${pl}" y2="${toY(0).toFixed(1)}" stroke="#cbd5e0" stroke-width="1"/>`;
+    pts.forEach(([x,y]) => {
+      s += `<circle cx="${toX(x).toFixed(1)}" cy="${toY(y).toFixed(1)}" r="2.5" fill="#667eea" opacity="0.65"/>`;
+    });
+    s += `<text x="${(pl+pl+plotW)/2}" y="${vH-3}" text-anchor="middle" font-size="9" font-weight="bold" fill="#553c9a" font-family="Segoe UI,sans-serif">r ≈ ${rLabel}</text>`;
+    s += '</svg>';
+    return s;
+  }
+
+  function getDensityFn(type) {
+    const norm = (x,mu,sd) => Math.exp(-0.5*((x-mu)/sd)**2);
+    switch(type) {
+      case 'normal':    return x => norm(x,50,13);
+      case 'normal2':   return x => norm(x,50,20);
+      case 'rightskew': return x => { if(x<0.1)return 0; const lx=Math.log(x+0.5); return (1/(x+0.5))*Math.exp(-0.5*((lx-2.85)/0.62)**2)*14; };
+      case 'leftskew':  return x => { const rx=100-x; if(rx<0.1)return 0; const lx=Math.log(rx+0.5); return (1/(rx+0.5))*Math.exp(-0.5*((lx-2.85)/0.62)**2)*14; };
+      case 'bimodal':   return x => 0.52*norm(x,30,9)+0.52*norm(x,70,9);
+      default:          return x => norm(x,50,13);
+    }
+  }
+
+  function densitySVG(type) {
+    const vW=400,vH=155,pl=20,pr=20,pt=12,pb=28;
+    const axY=pt+(vH-pt-pb), plotW=vW-pl-pr, plotH=vH-pt-pb;
+    const fn = getDensityFn(type);
+    let maxD=0;
+    for(let i=0;i<=500;i++){const d=fn(i/5);if(d>maxD)maxD=d;}
+    const toX = x => pl+(x/100)*plotW;
+    const toY = d => axY-(d/maxD)*plotH;
+    let fill='',line='';
+    for(let i=0;i<=400;i++){
+      const x=i/4,d=fn(x);
+      const sx=toX(x).toFixed(1),sy=toY(d).toFixed(1);
+      const cmd=i===0?'M':'L';
+      fill+=`${cmd}${sx},${sy} `;
+      line+=`${cmd}${sx},${sy} `;
+    }
+    fill+=`L${toX(100)},${axY} L${toX(0)},${axY} Z`;
+    let s=`<svg viewBox="0 0 ${vW} ${vH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:440px;display:block;margin:0 auto;border-radius:8px;background:#fafbff;border:1px solid #e2e8f0">`;
+    s+=`<rect x="${pl}" y="${pt}" width="${plotW}" height="${plotH}" fill="#fff"/>`;
+    s+=`<line x1="${pl}" y1="${axY}" x2="${pl+plotW}" y2="${axY}" stroke="#718096" stroke-width="1.5"/>`;
+    s+=`<path d="${fill}" fill="rgba(102,126,234,0.13)" stroke="none"/>`;
+    s+=`<path d="${line}" fill="none" stroke="#667eea" stroke-width="2.5" stroke-linejoin="round"/>`;
+    s+=`<text x="${(pl+pl+plotW)/2}" y="${vH-6}" text-anchor="middle" font-size="10" fill="#a0aec0" font-family="Segoe UI,sans-serif">Score</text>`;
+    s+='</svg>';
+    return s;
+  }
+
+  function twoGroupsSVG() {
+    const vW=400,vH=150,pl=20,pr=20,pt=10,pb=28;
+    const axY=pt+(vH-pt-pb), plotW=vW-pl-pr, plotH=vH-pt-pb;
+    const norm=(x,mu,sd)=>Math.exp(-0.5*((x-mu)/sd)**2);
+    let maxD=0;
+    for(let i=0;i<=500;i++){const d=Math.max(norm(i/5,38,11),norm(i/5,62,11));if(d>maxD)maxD=d;}
+    const toX=x=>pl+(x/100)*plotW;
+    const toY=d=>axY-(d/maxD)*plotH;
+    function curvePath(mu,col,fillCol){
+      let fill='',line='';
+      for(let i=0;i<=400;i++){const x=i/4,d=norm(x,mu,11);const sx=toX(x).toFixed(1),sy=toY(d).toFixed(1);const cmd=i===0?'M':'L';fill+=`${cmd}${sx},${sy} `;line+=`${cmd}${sx},${sy} `;}
+      fill+=`L${toX(100)},${axY} L${toX(0)},${axY} Z`;
+      return `<path d="${fill}" fill="${fillCol}" stroke="none"/><path d="${line}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round"/>`;
+    }
+    let s=`<svg viewBox="0 0 ${vW} ${vH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:440px;display:block;margin:0 auto;border-radius:8px;background:#fafbff;border:1px solid #e2e8f0">`;
+    s+=`<rect x="${pl}" y="${pt}" width="${plotW}" height="${plotH}" fill="#fff"/>`;
+    s+=`<line x1="${pl}" y1="${axY}" x2="${pl+plotW}" y2="${axY}" stroke="#718096" stroke-width="1.5"/>`;
+    s+=curvePath(38,'#667eea','rgba(102,126,234,0.18)');
+    s+=curvePath(62,'#e53e3e','rgba(229,62,62,0.15)');
+    // mean lines
+    s+=`<line x1="${toX(38).toFixed(1)}" y1="${pt}" x2="${toX(38).toFixed(1)}" y2="${axY}" stroke="#667eea" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+    s+=`<line x1="${toX(62).toFixed(1)}" y1="${pt}" x2="${toX(62).toFixed(1)}" y2="${axY}" stroke="#e53e3e" stroke-width="1.5" stroke-dasharray="4,3"/>`;
+    s+=`<text x="${toX(28)}" y="${pt+12}" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#667eea" font-family="Segoe UI,sans-serif">Group A</text>`;
+    s+=`<text x="${toX(72)}" y="${pt+12}" text-anchor="middle" font-size="9.5" font-weight="bold" fill="#e53e3e" font-family="Segoe UI,sans-serif">Group B</text>`;
+    s+=`<text x="${(pl+pl+plotW)/2}" y="${vH-6}" text-anchor="middle" font-size="10" fill="#a0aec0" font-family="Segoe UI,sans-serif">Score</text>`;
+    // t-test arrow
+    const ax=toX(50),ay=toY(0.35);
+    s+=`<line x1="${toX(38)}" y1="${ay}" x2="${toX(62)}" y2="${ay}" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)" marker-start="url(#arrl)"/>`;
+    s+=`<text x="${ax}" y="${ay-5}" text-anchor="middle" font-size="9" fill="#4a5568" font-family="Segoe UI,sans-serif">Is this difference significant?</text>`;
+    s+='</svg>';
+    return s;
+  }
+
+  function groupVarSVG(sd1, sd2, seed) {
+    const rng = srng(seed);
+    const vW=390, vH=230, pl=32, pr=32, pt=16, pb=42;
+    const plotW=vW-pl-pr, plotH=vH-pt-pb;
+    const axY=pt+plotH;
+    const mu=50;
+    // map score values (5–95) onto the plot height
+    const toY = v => pt + plotH*(1 - Math.max(0,Math.min(1,(v-5)/90)));
+    const xA=pl+plotW*0.27, xB=pl+plotW*0.73;
+    const bw=30;  // half-width of bands and bars
+    const jit = () => (rng()-0.5)*18;
+
+    // Generate 50 dots per group
+    const pA=[], pB=[];
+    for(let i=0;i<50;i++){ pA.push(mu+srnorm(rng)*sd1); pB.push(mu+srnorm(rng)*sd2); }
+
+    let s=`<svg viewBox="0 0 ${vW} ${vH}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:440px;display:block;margin:0 auto;border-radius:8px;background:#fafbff;border:1px solid #e2e8f0">`;
+    s+=`<rect x="${pl}" y="${pt}" width="${plotW}" height="${plotH}" fill="#fff"/>`;
+    // axes
+    s+=`<line x1="${pl}" y1="${axY}" x2="${pl+plotW}" y2="${axY}" stroke="#718096" stroke-width="1.5"/>`;
+    s+=`<line x1="${pl}" y1="${pt}" x2="${pl}" y2="${axY}" stroke="#718096" stroke-width="1"/>`;
+    // centre divider
+    s+=`<line x1="${pl+plotW/2}" y1="${pt}" x2="${pl+plotW/2}" y2="${axY}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="5,4"/>`;
+
+    // ── Draw using TRUE sd values (not sample) so comparisons are unambiguous ──
+    // ±1 SD shaded band
+    const a1t=toY(mu+sd1), a1b=toY(mu-sd1);
+    const b1t=toY(mu+sd2), b1b=toY(mu-sd2);
+    s+=`<rect x="${(xA-bw).toFixed(1)}" y="${a1t.toFixed(1)}" width="${bw*2}" height="${(a1b-a1t).toFixed(1)}" fill="rgba(102,126,234,0.18)" rx="5"/>`;
+    s+=`<rect x="${(xB-bw).toFixed(1)}" y="${b1t.toFixed(1)}" width="${bw*2}" height="${(b1b-b1t).toFixed(1)}" fill="rgba(229,62,62,0.15)" rx="5"/>`;
+
+    // ±2 SD whisker: vertical line + cap bars at top and bottom
+    const capW=14;
+    const a2t=toY(mu+2*sd1), a2b=toY(mu-2*sd1);
+    const b2t=toY(mu+2*sd2), b2b=toY(mu-2*sd2);
+    // Group A whisker
+    s+=`<line x1="${xA}" y1="${a2t.toFixed(1)}" x2="${xA}" y2="${a2b.toFixed(1)}" stroke="#667eea" stroke-width="1.4" stroke-dasharray="3,3"/>`;
+    s+=`<line x1="${(xA-capW)}" y1="${a2t.toFixed(1)}" x2="${(xA+capW)}" y2="${a2t.toFixed(1)}" stroke="#667eea" stroke-width="2"/>`;
+    s+=`<line x1="${(xA-capW)}" y1="${a2b.toFixed(1)}" x2="${(xA+capW)}" y2="${a2b.toFixed(1)}" stroke="#667eea" stroke-width="2"/>`;
+    // Group B whisker
+    s+=`<line x1="${xB}" y1="${b2t.toFixed(1)}" x2="${xB}" y2="${b2b.toFixed(1)}" stroke="#e53e3e" stroke-width="1.4" stroke-dasharray="3,3"/>`;
+    s+=`<line x1="${(xB-capW)}" y1="${b2t.toFixed(1)}" x2="${(xB+capW)}" y2="${b2t.toFixed(1)}" stroke="#e53e3e" stroke-width="2"/>`;
+    s+=`<line x1="${(xB-capW)}" y1="${b2b.toFixed(1)}" x2="${(xB+capW)}" y2="${b2b.toFixed(1)}" stroke="#e53e3e" stroke-width="2"/>`;
+
+    // Dots (drawn on top of bands)
+    pA.forEach(v=>{ const sy=toY(v); if(sy>=pt-2&&sy<=axY+2) s+=`<circle cx="${(xA+jit()).toFixed(1)}" cy="${Math.max(pt,Math.min(axY,sy)).toFixed(1)}" r="3.5" fill="#667eea" opacity="0.50"/>`; });
+    pB.forEach(v=>{ const sy=toY(v); if(sy>=pt-2&&sy<=axY+2) s+=`<circle cx="${(xB+jit()).toFixed(1)}" cy="${Math.max(pt,Math.min(axY,sy)).toFixed(1)}" r="3.5" fill="#e53e3e" opacity="0.50"/>`; });
+
+    // Mean bars (drawn last, on top)
+    s+=`<line x1="${(xA-bw)}" y1="${toY(mu).toFixed(1)}" x2="${(xA+bw)}" y2="${toY(mu).toFixed(1)}" stroke="#4338ca" stroke-width="3.5"/>`;
+    s+=`<line x1="${(xB-bw)}" y1="${toY(mu).toFixed(1)}" x2="${(xB+bw)}" y2="${toY(mu).toFixed(1)}" stroke="#c53030" stroke-width="3.5"/>`;
+
+    // Group labels
+    s+=`<text x="${xA}" y="${axY+14}" text-anchor="middle" font-size="11" font-weight="bold" fill="#667eea" font-family="Segoe UI,sans-serif">Group A</text>`;
+    s+=`<text x="${xB}" y="${axY+14}" text-anchor="middle" font-size="11" font-weight="bold" fill="#e53e3e" font-family="Segoe UI,sans-serif">Group B</text>`;
+    // Legend
+    s+=`<text x="${pl+plotW/2}" y="${vH-4}" text-anchor="middle" font-size="8.5" fill="#a0aec0" font-family="Segoe UI,sans-serif">Shaded = ±1 SD · Whiskers = ±2 SD · Bar = mean</text>`;
+    s+='</svg>';
+    return s;
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     4. CHALLENGE DATA
+  ═══════════════════════════════════════════════════════════════════ */
+  const LIN_DATA = [
+    { pts: genCorr(1,  0.75, 45), answer:'linear',    q:'Is this a linear relationship?',
+      fb_c:'✅ Correct! The points follow a straight line from bottom-left to top-right — this is a clear positive linear relationship, satisfying the linearity assumption.',
+      fb_w:'❌ Look again — the points follow a fairly straight diagonal line. This is actually a positive linear relationship.' },
+    { pts: genQuad(2,       45), answer:'nonlinear',  q:'Is this a linear relationship?',
+      fb_c:'✅ Correct! This is a U-shaped (quadratic) curve. Even though there is a pattern, a straight line would not fit it well. Pearson correlation is not appropriate here.',
+      fb_w:'❌ Look at the overall shape — the points curve upward on both sides forming a U. This is a non-linear (quadratic) relationship.' },
+    { pts: genCorr(3, -0.68, 45), answer:'linear',    q:'Is this a linear relationship?',
+      fb_c:'✅ Correct! Even though this relationship is negative (as X increases, Y decreases), it is still linear. A straight line fits this data well.',
+      fb_w:'❌ The direction (negative/positive) does not affect linearity. This data follows a straight downward line — it is linear.' },
+    { pts: genArch(4,       45), answer:'nonlinear',  q:'Is this a linear relationship?',
+      fb_c:'✅ Correct! This inverted U (arch) shape is non-linear. The relationship peaks in the middle and falls away on both sides — Pearson r is not appropriate.',
+      fb_w:'❌ Look at the overall curve — the data rises to a peak then falls, forming an inverted U shape. This is a non-linear relationship.' },
+  ];
+
+  const HOM_DATA = [
+    { pts: genCorr(5,  0.65, 45), answer:'homo',    q:'Does the spread around the line look approximately equal throughout?',
+      fb_c:'✅ Correct! The cloud of points maintains a roughly consistent width around the regression line — this is homoscedastic (equal variance).',
+      fb_w:'❌ Look at the spread of points around the red dashed line from left to right — it stays roughly the same width throughout. This is homoscedastic.' },
+    { pts: genHeteroFan(6,  1, 45), answer:'hetero', q:'Does the spread around the line look approximately equal throughout?',
+      fb_c:'✅ Correct! Notice how the data fans out as X increases — the spread is much wider on the right than the left. This is heteroscedastic (unequal variance).',
+      fb_w:'❌ Look carefully at the width of the point cloud at the left vs. right of the line — it fans out, getting much wider on the right. This is heteroscedastic.' },
+    { pts: genCorr(7, -0.60, 45), answer:'homo',    q:'Does the spread around the line look approximately equal throughout?',
+      fb_c:'✅ Correct! Even though this is a negative correlation, the spread around the line stays roughly even from left to right — this is homoscedastic.',
+      fb_w:'❌ The spread around the dashed line stays roughly constant throughout. A negative slope does not make it heteroscedastic — this is homoscedastic.' },
+    { pts: genHeteroFan(8, -1, 45), answer:'hetero', q:'Does the spread around the line look approximately equal throughout?',
+      fb_c:'✅ Correct! The data is wide and spread out on the left but narrows toward the right — an uneven, funnel-shaped spread. This is heteroscedastic.',
+      fb_w:'❌ Look at the spread near x=10 compared to x=90. It is wide on the left and narrow on the right (a funnel shape). This is heteroscedastic.' },
+  ];
+
+  const NRM_DATA = [
+    { type:'normal',   answer:'normal',    q:'Does this distribution look approximately normal?',
+      fb_c:'✅ Correct! This is a classic bell-shaped, symmetrical distribution — the hallmark of normality.',
+      fb_w:'❌ This distribution is symmetrical and bell-shaped — both key features of a normal distribution.' },
+    { type:'rightskew',answer:'notnormal', q:'Does this distribution look approximately normal?',
+      fb_c:'✅ Correct! This distribution has a peak toward the lower end and a long tail stretching to the right — this is positive (right) skew, which violates normality.',
+      fb_w:'❌ A normal distribution is symmetric. This one has a long tail to the right (positive/right skew) — it is not normal.' },
+    { type:'normal2',  answer:'normal',    q:'Does this distribution look approximately normal?',
+      fb_c:'✅ Correct! The bell shape and symmetry are both present, even though this distribution is wider than a textbook example. It is still approximately normal.',
+      fb_w:'❌ Even though this bell curve is wider/flatter than a narrow example, it is still symmetrical and bell-shaped — approximately normal.' },
+    { type:'bimodal',  answer:'notnormal', q:'Does this distribution look approximately normal?',
+      fb_c:'✅ Correct! This distribution has two peaks (bimodal) — it is not bell-shaped and strongly violates the normality assumption.',
+      fb_w:'❌ A normal distribution has one peak in the middle. This has two separate peaks — it is bimodal and not normal.' },
+  ];
+
+  const GRP_DATA = [
+    { sd1:10, sd2:10, seed:30, answer:'equal',
+      q:'Do the two groups appear to have roughly equal spread (variance)?',
+      fb_c:'✅ Correct! Both groups have identical spread — the shaded bands and whiskers reach the same height. Levene\'s test would be non-significant (p > .05). The equal variance assumption is met.',
+      fb_w:'❌ Look at the shaded bands and whiskers — both groups span the same vertical range. This is equal variance. Levene\'s test would be non-significant (p > .05).' },
+    { sd1:5, sd2:20, seed:31, answer:'unequal',
+      q:'Do the two groups appear to have roughly equal spread (variance)?',
+      fb_c:'✅ Correct! Group A\'s band is narrow and tight; Group B\'s band is four times wider. This is clear heteroscedasticity. Levene\'s test would be significant (p < .05) — use Welch\'s t-test.',
+      fb_w:'❌ Compare the shaded bands — Group A is very narrow, Group B is four times wider. This large difference in spread is unequal variance. Levene\'s would be significant (p < .05).' },
+    { sd1:12, sd2:12, seed:32, answer:'equal',
+      q:'Do the two groups appear to have roughly equal spread (variance)?',
+      fb_c:'✅ Correct! Both groups have the same spread — the shaded bands are the same height and the whiskers reach the same distance. Levene\'s test would be non-significant (p > .05).',
+      fb_w:'❌ The shaded bands and whiskers are the same height for both groups — they have equal spread. Levene\'s test would be non-significant (p > .05).' },
+    { sd1:4, sd2:16, seed:33, answer:'unequal',
+      q:'Do the two groups appear to have roughly equal spread (variance)?',
+      fb_c:'✅ Correct! Group A is extremely tightly packed (very short band); Group B is four times wider. This is severe heteroscedasticity. Levene\'s test would be significant (p < .05) — use Welch\'s t-test.',
+      fb_w:'❌ Compare the band heights — Group A has almost no spread while Group B is much wider. This is a very large difference in variance. Levene\'s would be significant (p < .05).' },
+  ];
+
+  const SCENARIOS = [
+    { text:'A researcher wants to investigate whether the amount of sleep students get predicts their exam performance.',
+      vars:['Sleep (hours/night) — continuous','Exam score (%) — continuous'],
+      answer:'corr',
+      fb:'Pearson Correlation ✅ — Both variables are continuous and the question asks about the relationship between them (does sleep predict scores?). When you have two continuous variables and a "relationship" question, use correlation.' },
+    { text:'A clinical psychologist wants to know if patients who received CBT therapy report lower anxiety scores than those who received standard care.',
+      vars:['Treatment group (CBT vs. standard care) — dichotomous','Anxiety score (GAD-7) — continuous'],
+      answer:'ttest',
+      fb:'Independent T-Test ✅ — The IV (treatment group) is dichotomous — two groups. The DV (anxiety score) is continuous. The question asks if one group is higher/lower than another, which is a t-test question.' },
+    { text:'A researcher asks: as age increases, does wellbeing score tend to change? They have age in years and scores on a wellbeing scale for 200 participants.',
+      vars:['Age (years) — continuous','Wellbeing score — continuous'],
+      answer:'corr',
+      fb:'Pearson Correlation ✅ — Both variables are continuous (age in years, wellbeing score). The question asks about the direction and strength of a relationship between them.' },
+    { text:'A researcher compares memory test scores between people who used a mindfulness app and those who did not.',
+      vars:['App use (yes/no) — dichotomous','Memory test score — continuous'],
+      answer:'ttest',
+      fb:'Independent T-Test ✅ — App use is dichotomous (two groups: yes/no). Memory score is the continuous DV. The question is whether one group scores higher than the other — a comparison of means.' },
+  ];
+
+  const MCQ_DATA = {
+    10: {
+      q:'A researcher wants to compare anxiety scores between a therapy group and a waitlist control group. The same 20 participants complete both conditions — therapy first, then waitlist, four weeks apart. Is the independence assumption met?',
+      opts:['Yes — the groups are clearly labelled therapy and control','No — the same participants appear in both groups, violating independence','Yes — there is a four-week gap between measurements','It cannot be assessed without running the statistical test first'],
+      correct: 1,
+      fb_c:'✅ Correct! Independence requires that each observation comes from a different participant. Here the same 20 people appear in both conditions, so the groups are NOT independent — the independence assumption is violated.',
+      fb_w:'❌ Independence means no participant appears in more than one group. Here the same 20 people complete both conditions — the groups share participants, so independence is violated.'
+    },
+    11: {
+      q:'You run an independent t-test and see the following in the Jamovi Assumption Checks section:',
+      table: true,
+      opts:['p = .519 is significant — use Welch\'s t-test instead','p = .519 is significant — use a non-parametric test instead','p = .519 is not significant — the homogeneity assumption is met, use standard t-test results','p = .519 is not significant — but you should still report Welch\'s to be safe'],
+      correct: 2,
+      fb_c:'✅ Correct! Levene\'s test p = .519 is greater than .05, so there is no significant evidence of unequal variance. The homogeneity of variance assumption is met and you can use the standard (non-Welch\'s) t-test results.',
+      fb_w:'❌ For Levene\'s test, we want a NON-significant result (p > .05). p = .519 > .05 means the homogeneity of variance assumption IS met — use the standard t-test output, not Welch\'s.'
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════════
+     5. STATE
+  ═══════════════════════════════════════════════════════════════════ */
+  let current = 0;
+  let mcqDone = {};
+  let cState  = {};  // challenge state per slide
+
+  const TOTAL = 15;
+  const SLIDES = [
+    { type:'info' },      // 0  welcome
+    { type:'info' },      // 1  pearson recap
+    { type:'info' },      // 2  t-test recap
+    { type:'info' },      // 3  decision
+    { type:'scenario' },  // 4  which test?
+    { type:'visual', sub:'lin' },   // 5  linearity
+    { type:'visual', sub:'hom' },   // 6  homoscedasticity (scatter, correlation)
+    { type:'visual', sub:'nrm' },   // 7  normality
+    { type:'visual', sub:'grp' },   // 8  equal variance between groups (t-test)
+    { type:'info' },      // 9  violations
+    { type:'mcq' },       // 10 independence
+    { type:'mcq' },       // 11 levene's
+    { type:'jamovi', sub:'corr' },  // 12
+    { type:'jamovi', sub:'ttest' }, // 13
+    { type:'done' },      // 14
+  ];
+
+  /* ════════════════════════════════════════════════════════════════
+     6. SLIDE CONTENT
+  ═══════════════════════════════════════════════════════════════════ */
+  function getContent(idx) {
+    switch(idx) {
+      case  0: return slide0();
+      case  1: return slide1();
+      case  2: return slide2();
+      case  3: return slide3();
+      case  4: return slide4();
+      case  5: return slideVisual(5,'lin');
+      case  6: return slideVisual(6,'hom');
+      case  7: return slideVisual(7,'nrm');
+      case  8: return slideVisual(8,'grp');
+      case  9: return slide9();
+      case 10: return slideMCQ(10);
+      case 11: return slideMCQ(11);
+      case 12: return slideJamovi('corr');
+      case 13: return slideJamovi('ttest');
+      case 14: return slide14();
+    }
+  }
+
+  function slide0() {
+    return `
+      <div class="welcome-icon">📈</div>
+      <div class="ls-title">Correlations &amp; T-Tests</div>
+      <div class="ls-subtitle">An interactive lesson for psychology students</div>
+      <div class="ls-body">This lesson builds on what you know about normality to cover two of the most common statistical tests in psychology. By the end you'll be able to check all the assumptions and interpret Jamovi output confidently.</div>
+      <div class="ls-highlight"><strong>What you'll learn:</strong> When to use each test · How to check every assumption visually and statistically · How to read Jamovi output and write up results in APA format</div>
+      <div class="welcome-chips">
+        <span class="welcome-chip">📋 15 slides</span>
+        <span class="welcome-chip">🎯 4 scenario challenges</span>
+        <span class="welcome-chip">👁️ 16 visual challenges</span>
+        <span class="welcome-chip">❓ 2 MCQs</span>
+        <span class="welcome-chip">🖥️ 2 Jamovi output explorers</span>
+      </div>`;
+  }
+
+  function slide1() {
+    const r0  = genCorr(20,  0.02, 40);
+    const r3  = genCorr(21,  0.25, 40);
+    const r7  = genCorr(22,  0.45, 40);
+    const r95 = genCorr(23,  0.96, 40);
+    return `
+      <div class="ls-title">Pearson Correlation</div>
+      <div class="ls-subtitle">Measuring linear relationships between continuous variables</div>
+      <div class="ls-body">A Pearson correlation tells you two things about the relationship between two variables: its <strong>direction</strong> (positive or negative) and its <strong>strength</strong> (0 = none, 1 = perfect). The statistic is called <em>r</em>.</div>
+      <div class="mini-scatter-grid">
+        <div><div>${miniScatterSVG(r0,'0')}</div><div class="mini-scatter-label">No relationship</div></div>
+        <div><div>${miniScatterSVG(r3,'.25')}</div><div class="mini-scatter-label">Weak positive</div></div>
+        <div><div>${miniScatterSVG(r7,'.45')}</div><div class="mini-scatter-label">Moderate positive</div></div>
+        <div><div>${miniScatterSVG(r95,'.96')}</div><div class="mini-scatter-label">Strong positive</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Assumptions</div>
+          <ul class="ls-key-points" style="margin:0">
+            <li data-icon="📏">Linear relationship</li>
+            <li data-icon="🔔">Normality (both variables)</li>
+            <li data-icon="↔️">Homoscedasticity</li>
+            <li data-icon="👥">Independence</li>
+            <li data-icon="📊">Both variables continuous</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Effect Size (r IS the effect size)</div>
+          <table class="es-table">
+            <tr><th>|r|</th><th>Label</th></tr>
+            <tr><td>&lt; .10</td><td>Negligible</td></tr>
+            <tr><td>.10 – .29</td><td>Weak</td></tr>
+            <tr><td>.30 – .49</td><td>Moderate</td></tr>
+            <tr><td>≥ .50</td><td>Strong</td></tr>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  function slide2() {
+    return `
+      <div class="ls-title">Independent Samples T-Test</div>
+      <div class="ls-subtitle">Comparing means between two groups</div>
+      <div class="ls-body">When you have a <strong>continuous outcome</strong> (DV) and want to compare it across <strong>two groups</strong> (dichotomous IV), the t-test is the right tool. It asks: "Is the mean of Group A significantly different from the mean of Group B?"</div>
+      <div class="two-groups-wrap">${twoGroupsSVG()}</div>
+      <div class="ls-body" style="font-size:.86rem;margin:4px 0 10px">The <strong>dotted lines mark the mean of each group</strong> — the horizontal gap between them is the size of the difference being tested. A t-test asks whether that gap is large enough to be statistically significant.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Assumptions</div>
+          <ul class="ls-key-points" style="margin:0">
+            <li data-icon="🔔">DV is approximately normal</li>
+            <li data-icon="↔️">Homoscedasticity (Levene's test)</li>
+            <li data-icon="👥">Independence</li>
+            <li data-icon="📊">DV continuous, IV dichotomous</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:.78rem;font-weight:700;color:#667eea;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Effect Size: Cohen's d</div>
+          <table class="es-table">
+            <tr><th>d</th><th>Label</th></tr>
+            <tr><td>&lt; 0.20</td><td>Negligible</td></tr>
+            <tr><td>0.20 – 0.49</td><td>Small</td></tr>
+            <tr><td>0.50 – 0.79</td><td>Medium</td></tr>
+            <tr><td>≥ 0.80</td><td>Large</td></tr>
+          </table>
+          <div class="ls-highlight" style="margin-top:8px;font-size:.82rem">Cohen's d measures how far apart the two means are <strong>in standard deviation units</strong>. d = 0.50 means the means are half an SD apart. <strong>Always report as a positive value</strong> — check descriptives for which group was higher.</div>
+        </div>
+      </div>`;
+  }
+
+  function slide3() {
+    return `
+      <div class="ls-title">Choosing the Right Test</div>
+      <div class="ls-subtitle">The decision comes down to your variable types</div>
+      <div class="ls-body">Before running any test, ask yourself: <strong>what types are my two variables?</strong> This single question determines which test to use.</div>
+      <table class="comp-table">
+        <tr><th></th><th>Pearson Correlation</th><th>Independent T-Test</th></tr>
+        <tr><td>Variable types</td><td>Continuous + Continuous</td><td>Continuous DV + Dichotomous IV</td></tr>
+        <tr><td>The question</td><td>"As X goes up, does Y tend to go up or down?"</td><td>"Is Group A higher or lower than Group B?"</td></tr>
+        <tr><td>What it produces</td><td>r (strength + direction)</td><td>t statistic + Cohen's d</td></tr>
+        <tr><td>Unique assumption</td><td><span class="comp-tag purple">Linear relationship</span></td><td><span class="comp-tag blue">IV must be dichotomous</span></td></tr>
+        <tr><td>Shared assumptions</td><td colspan="2" style="text-align:center;background:#f7fafc;color:#4a5568">Normality · Homoscedasticity · Independence</td></tr>
+        <tr><td>Check homoscedasticity</td><td><span class="comp-tag purple">Scatterplot (visual)</span></td><td><span class="comp-tag blue">Levene's test + visual</span></td></tr>
+        <tr><td>If violated: homosc.</td><td>Use Spearman's r</td><td>Use Welch's t-test</td></tr>
+        <tr><td>Effect size</td><td>r <em>is</em> the effect size</td><td>Need separate Cohen's d</td></tr>
+      </table>
+      <div class="ls-highlight">💡 <strong>Handy rule:</strong> If one of your variables has only two categories (e.g., yes/no, male/female, Group A/Group B) — use a t-test, not a correlation.</div>`;
+  }
+
+  function slide4() {
+    const st = cState[4] || (cState[4] = { idx:0, results:[], done:false });
+    return `
+      <div class="ls-title">Which Test Would You Use?</div>
+      <div class="ls-subtitle">Work through 4 research scenarios</div>
+      <div id="scenario-area">${renderScenario(4)}</div>`;
+  }
+
+  function renderScenario(slideIdx) {
+    const st = cState[slideIdx];
+    if (st.done) {
+      const correct = st.results.filter(Boolean).length;
+      return `<div class="scenario-score"><strong>All done! ${correct}/4 correct on first attempt</strong>Review the feedback above for any you found tricky, then click Next to continue.</div>`;
+    }
+    const sc = SCENARIOS[st.idx];
+    const pips = SCENARIOS.map((_,i) => {
+      let cls = 'vc-pip';
+      if(i < st.idx) cls += st.results[i] ? ' correct' : ' wrong';
+      else if(i === st.idx) cls += ' active';
+      return `<div class="${cls}"></div>`;
+    }).join('');
+    return `
+      <div class="vc-header">
+        <div class="vc-counter">Scenario ${st.idx+1} of 4</div>
+        <div class="vc-pips">${pips}</div>
+      </div>
+      <div class="scenario-box">
+        <div class="scenario-text">${sc.text}</div>
+        <div class="scenario-vars">${sc.vars.map(v=>`<span>${v}</span>`).join('')}</div>
+      </div>
+      <div class="scenario-btns">
+        <button class="scenario-btn" id="sc-corr" data-choice="corr">📈 Pearson Correlation</button>
+        <button class="scenario-btn" id="sc-ttest" data-choice="ttest">📊 Independent T-Test</button>
+      </div>
+      <div class="scenario-feedback" id="sc-fb"></div>
+      <div id="sc-next-wrap"></div>`;
+  }
+
+  function slideVisual(slideIdx, sub) {
+    const titles = { lin:'Is the Relationship Linear?', hom:'Homoscedastic or Heteroscedastic?', nrm:'Is This Distribution Normal?', grp:'Equal Variance Between Groups?' };
+    const subtitles = {
+      lin:'The relationship must be a straight line for Pearson r to be valid',
+      hom:'The spread of data around the regression line should be roughly equal throughout',
+      nrm:'Your data should be approximately bell-shaped before running parametric tests',
+      grp:'For an independent t-test, both groups should have a similar spread — inspect visually and confirm with Levene\'s test'
+    };
+    const st = cState[slideIdx] || (cState[slideIdx] = { idx:0, results:[], done:false });
+    return `
+      <div class="ls-title">${titles[sub]}</div>
+      <div class="ls-subtitle">${subtitles[sub]}</div>
+      <div id="vc-area">${renderVisualChallenge(slideIdx, sub)}</div>`;
+  }
+
+  function renderVisualChallenge(slideIdx, sub) {
+    const data = { lin:LIN_DATA, hom:HOM_DATA, nrm:NRM_DATA, grp:GRP_DATA }[sub];
+    const st = cState[slideIdx];
+    if (st.done) {
+      const correct = st.results.filter(Boolean).length;
+      return `<div class="vc-score"><strong>${correct}/4 correct</strong>${correct===4?'Perfect — you nailed all four!':correct>=3?'Great work! Review the feedback for any you found tricky.':'Take another look at the feedback explanations before moving on.'}</div>`;
+    }
+    const item = data[st.idx];
+    const pips = data.map((_,i)=>{
+      let c='vc-pip';
+      if(i<st.idx) c+=st.results[i]?' correct':' wrong';
+      else if(i===st.idx) c+=' active';
+      return `<div class="${c}"></div>`;
+    }).join('');
+    let plotHtml;
+    if (sub==='nrm') {
+      plotHtml = densitySVG(item.type);
+    } else if (sub==='grp') {
+      plotHtml = groupVarSVG(item.sd1, item.sd2, item.seed);
+    } else {
+      plotHtml = scatterSVG(item.pts, { showLine: sub==='hom', color:'#667eea' });
+    }
+    const btns = sub==='lin'
+      ? `<button class="vc-btn" data-ans="linear">✅ Yes, linear</button><button class="vc-btn" data-ans="nonlinear">❌ No, non-linear</button>`
+      : sub==='hom'
+      ? `<button class="vc-btn" data-ans="homo">✅ Yes — homoscedastic</button><button class="vc-btn" data-ans="hetero">❌ No — heteroscedastic</button>`
+      : sub==='grp'
+      ? `<button class="vc-btn" data-ans="equal">✅ Yes — equal variance</button><button class="vc-btn" data-ans="unequal">❌ No — unequal variance</button>`
+      : `<button class="vc-btn" data-ans="normal">✅ Yes, approximately normal</button><button class="vc-btn" data-ans="notnormal">❌ No, not normal</button>`;
+    return `
+      <div class="vc-header">
+        <div class="vc-counter">Plot ${st.idx+1} of 4</div>
+        <div class="vc-pips">${pips}</div>
+      </div>
+      <div class="vc-plot">${plotHtml}</div>
+      <div class="vc-question">${item.q}</div>
+      <div class="vc-btns">${btns}</div>
+      <div class="vc-feedback" id="vc-fb"></div>
+      <div id="vc-next-wrap"></div>`;
+  }
+
+  function slide9() {
+    return `
+      <div class="ls-title">What If Assumptions Are Violated?</div>
+      <div class="ls-subtitle">Don't panic — there are alternatives for every situation</div>
+      <div class="ls-body">Parametric tests have assumptions because their mathematical foundations rely on them. If an assumption is violated, you switch to an alternative — not abandon statistics entirely. Always be transparent about which test you used and why.</div>
+      <table class="viol-table">
+        <tr><th>Violated assumption</th><th>What you'll see</th><th>What to do</th></tr>
+        <tr><td>Normality</td><td>Shapiro-Wilk p &lt; .05, skewed histogram or outliers in boxplot</td><td>Correlation → <strong>Spearman's r</strong><br>T-test → <strong>Mann-Whitney U</strong></td></tr>
+        <tr><td>Homoscedasticity</td><td>Fan-shaped scatterplot (correlation) or unequal group spread / Levene's p &lt; .05 (t-test)</td><td>T-test → <strong>Welch's t-test</strong> (tick in Jamovi)<br>Correlation → <strong>Spearman's r</strong></td></tr>
+        <tr><td>Linearity</td><td>Curved scatterplot (U, J, arch shapes)</td><td>Use <strong>Spearman's r</strong> instead of Pearson</td></tr>
+        <tr><td>Independence</td><td>Same participants in multiple groups, shared instructor/environment</td><td>Study design issue — <strong>cannot proceed with this test</strong>. The study must be redesigned.</td></tr>
+      </table>`;
+  }
+
+  function slideMCQ(idx) {
+    const d = MCQ_DATA[idx];
+    const table = idx===11 ? `
+      <div style="margin:10px 0;font-family:Segoe UI,sans-serif;font-size:.85rem">
+        <div style="font-weight:700;font-size:.87rem;margin-bottom:4px">Homogeneity of Variances Test (Levene's)</div>
+        <table style="border-collapse:collapse;font-size:.85rem">
+          <thead><tr style="border-top:2px solid #2d3748;border-bottom:1px solid #2d3748">
+            <th style="padding:4px 14px;text-align:left">Variable</th>
+            <th style="padding:4px 14px;text-align:right">F</th>
+            <th style="padding:4px 14px;text-align:right">df1</th>
+            <th style="padding:4px 14px;text-align:right">df2</th>
+            <th style="padding:4px 14px;text-align:right">p</th>
+          </tr></thead>
+          <tbody><tr style="border-bottom:2px solid #2d3748">
+            <td style="padding:4px 14px">anxiety_score</td>
+            <td style="padding:4px 14px;text-align:right">0.42</td>
+            <td style="padding:4px 14px;text-align:right">1</td>
+            <td style="padding:4px 14px;text-align:right">118</td>
+            <td style="padding:4px 14px;text-align:right">.519</td>
+          </tr></tbody>
+        </table>
+      </div>` : '';
+    const opts = d.opts.map((o,i)=>`<button class="mcq-opt" data-idx="${i}"><span class="opt-letter">${'ABCD'[i]}</span>${o}</button>`).join('');
+    return `
+      <div class="ls-subtitle">Quick Check ${idx-9} of 2</div>
+      <div class="mcq-question">${d.q}</div>
+      ${table}
+      <div class="mcq-options" id="mcq-opts">${opts}</div>
+      <div class="mcq-feedback" id="mcq-fb"></div>`;
+  }
+
+  function slideJamovi(type) {
+    if (type==='corr') return `
+      <div class="ls-title">Reading Jamovi Output: Pearson Correlation</div>
+      <div class="ls-subtitle">Click each highlighted value to see what it means for APA reporting</div>
+      <div class="j-instructions">Click the <strong>blue highlighted values</strong> in the table below. Each one will explain what it represents and fill in the APA results sentence.</div>
+      <div id="j-corr-content">${renderJamoviCorr()}</div>`;
+    return `
+      <div class="ls-title">Reading Jamovi Output: Independent T-Test</div>
+      <div class="ls-subtitle">Click each highlighted value to see what it means for APA reporting</div>
+      <div class="j-instructions">Click <strong>all five highlighted values</strong> across the two tables below to complete the APA results sentence.</div>
+      <div id="j-ttest-content">${renderJamoviTtest()}</div>`;
+  }
+
+  function renderJamoviCorr() {
+    const st = cState[12] || (cState[12] = { clicked: new Set(), done:false });
+    const clicked = st.clicked;
+    const cls = key => clicked.has(key) ? `j-clickable clicked-${key}` : 'j-clickable';
+    const needed = ['r','p','df'];
+    const done_count = needed.filter(k=>clicked.has(k)).length;
+    const callout = {
+      r: `<div class="j-callout j-callout-r show"><strong>r = .174</strong> — This is your Pearson correlation coefficient. Positive value = positive relationship (as sport participation increases, happiness tends to increase). |r| = .174 → <em>negligible to weak</em> effect size. This value goes directly into your APA write-up.</div>`,
+      p: `<div class="j-callout j-callout-p show"><strong>p = .013</strong> — Your significance value. Because .013 &lt; .05, this correlation is <em>statistically significant</em>. In APA, report as: p = .013</div>`,
+      df:`<div class="j-callout j-callout-df show"><strong>df = 224</strong> — Degrees of freedom. For Pearson correlation, df = N − 2. With 226 participants, df = 226 − 2 = 224. This number goes in brackets in your APA write-up: r(<strong>224</strong>).</div>`,
+    };
+    const active = [...clicked].pop() || '';
+    const apaR  = clicked.has('r')  ? `<span class="apa-filled">.174</span>` : `<span class="apa-blank">[click r]</span>`;
+    const apaDf = clicked.has('df') ? `<span class="apa-filled">224</span>`  : `<span class="apa-blank">[click df]</span>`;
+    const apaP  = clicked.has('p')  ? `<span class="apa-filled">.013</span>` : `<span class="apa-blank">[click p]</span>`;
+    const allDone = needed.every(k=>clicked.has(k));
+    const interp = allDone ? 'There was a statistically significant, positive relationship between years of competitive sport participation and happiness, r(224) = .174, p = .013, indicating a negligible-to-weak effect size.' : '';
+    return `
+      <div class="j-output">
+        <div class="j-section">
+          <div class="j-section-title">Correlation Matrix</div>
+          <table class="j-table">
+            <thead><tr><th></th><th>happiness_t1</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>yearssport_t1</strong><br><span style="padding-left:14px;font-weight:400;color:#666;font-size:.82rem">Pearson's r</span></td>
+                <td><span class="${cls('r')}" data-jkey="r" id="jc-r">.174</span></td>
+              </tr>
+              <tr>
+                <td><span style="padding-left:14px;font-weight:400;color:#666;font-size:.82rem">df</span></td>
+                <td><span class="${cls('df')}" data-jkey="df" id="jc-df">224</span></td>
+              </tr>
+              <tr>
+                <td><span style="padding-left:14px;font-weight:400;color:#666;font-size:.82rem">p-value</span></td>
+                <td><span class="${cls('p')}" data-jkey="p" id="jc-p">.013</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="j-note"><em>Note.</em> df = N − 2; all tests are two-tailed</div>
+        </div>
+        <div class="j-progress">${done_count}/3 values explored</div>
+        <div class="j-callout-wrap">${active ? callout[active]||'' : '<div class="j-callout show" style="background:#f7fafc;border-left:3px solid #e2e8f0;color:#a0aec0">← Click a highlighted value to learn what it means</div>'}</div>
+        <div class="apa-builder">
+          <div class="apa-label">APA Results Sentence — building as you click</div>
+          <div class="apa-sentence">r(${apaDf}) = ${apaR}, p = ${apaP}</div>
+          <div class="apa-interp">${interp}</div>
+        </div>
+      </div>`;
+  }
+
+  function renderJamoviTtest() {
+    const st = cState[13] || (cState[13] = { clicked: new Set(), done:false });
+    const clicked = st.clicked;
+    const cls = key => clicked.has(key) ? `j-clickable clicked-${key}` : 'j-clickable';
+    const needed = ['t','df','p','d','lev'];
+    const done_count = needed.filter(k=>clicked.has(k)).length;
+    const callout = {
+      t:  `<div class="j-callout j-callout-t show"><strong>t = −0.773</strong> — The t-statistic. Negative sign means the "yes" group had a lower mean than the "no" group — but always check your descriptives to confirm which direction the difference goes. In APA: t(df) = −0.773</div>`,
+      df: `<div class="j-callout j-callout-df show"><strong>df = 225</strong> — Degrees of freedom. For an independent t-test, df = N − 2. Goes in brackets in your APA write-up: t(<strong>225</strong>).</div>`,
+      p:  `<div class="j-callout j-callout-p show"><strong>p = .440</strong> — Not significant (p &gt; .05). There is no statistically significant difference in years of sport between those who did and did not endorse happiness. In APA: p = .440</div>`,
+      d:  `<div class="j-callout j-callout-d show"><strong>Cohen's d = 0.10</strong> — Effect size for the t-test. Always report as a <em>positive</em> value — check descriptives for direction. d = 0.10 is a negligible effect. In APA: d = 0.10</div>`,
+      lev:`<div class="j-callout j-callout-lev show"><strong>Levene's p = .902</strong> — p &gt; .05 means the homogeneity of variance assumption IS met — use the <em>Student's t</em> row (not Welch's). If p &lt; .05, switch to Welch's t-test.</div>`,
+    };
+    const active = [...clicked].pop() || '';
+    const apaT  = clicked.has('t')  ? `<span class="apa-filled">−0.773</span>` : `<span class="apa-blank">[click t]</span>`;
+    const apaDf = clicked.has('df') ? `<span class="apa-filled">225</span>`    : `<span class="apa-blank">[click df]</span>`;
+    const apaP  = clicked.has('p')  ? `<span class="apa-filled">.440</span>`   : `<span class="apa-blank">[click p]</span>`;
+    const apaD  = clicked.has('d')  ? `<span class="apa-filled">0.10</span>`   : `<span class="apa-blank">[click d]</span>`;
+    const allDone = needed.every(k=>clicked.has(k));
+    const interp = allDone ? 'There was no statistically significant difference in years of sport participation between those who used the mindfulness app and those who did not, t(225) = −0.773, p = .440, d = 0.10 (negligible effect).' : '';
+    return `
+      <div class="j-output">
+        <div class="j-section">
+          <div class="j-section-title">Independent Samples T-Test</div>
+          <table class="j-table">
+            <thead><tr><th></th><th>Statistic</th><th>df</th><th>p</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>yearssport_t1</strong><br><span style="padding-left:14px;font-weight:400;color:#666;font-size:.82rem">Student's t</span></td>
+                <td><span class="${cls('t')}"  data-jkey="t"  id="jt-t">−0.773</span></td>
+                <td><span class="${cls('df')}" data-jkey="df" id="jt-df">225</span></td>
+                <td><span class="${cls('p')}"  data-jkey="p"  id="jt-p">.440</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="j-note"><em>Note.</em> H₀: μ<sub>yes</sub> − μ<sub>no</sub> = 0</div>
+        </div>
+        <div class="j-section">
+          <div class="j-section-title">Effect Sizes</div>
+          <table class="j-table">
+            <thead><tr><th></th><th>Cohen's d</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><strong>yearssport_t1</strong><br><span style="padding-left:14px;font-weight:400;color:#666;font-size:.82rem">Student's t</span></td>
+                <td><span class="${cls('d')}"  data-jkey="d"  id="jt-d">0.10</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="j-section">
+          <div class="j-section-title">Assumption Checks — Homogeneity of Variances (Levene's)</div>
+          <table class="j-table">
+            <thead><tr><th></th><th>F</th><th>df1</th><th>df2</th><th>p</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>yearssport_t1</td>
+                <td>0.0152</td><td>1</td><td>225</td>
+                <td><span class="${cls('lev')}" data-jkey="lev" id="jt-lev">.902</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="j-note"><em>Note.</em> A low p-value (p &lt; .05) suggests a violation of the assumption of equal variances.</div>
+        </div>
+        <div class="j-progress">${done_count}/5 values explored</div>
+        <div class="j-callout-wrap">${active ? callout[active]||'' : '<div class="j-callout show" style="background:#f7fafc;border-left:3px solid #e2e8f0;color:#a0aec0">← Click a highlighted value to learn what it means</div>'}</div>
+        <div class="apa-builder">
+          <div class="apa-label">APA Results Sentence — building as you click</div>
+          <div class="apa-sentence">t(${apaDf}) = ${apaT}, p = ${apaP}, d = ${apaD}</div>
+          <div class="apa-interp">${interp}</div>
+        </div>
+      </div>`;
+  }
+
+  function slide14() {
+    return `
+      <div class="ls-title">You're Ready for Jamovi! 🎉</div>
+      <div class="ls-body">You've covered everything you need to check assumptions and run these tests. Here's what you can now do:</div>
+      <div class="done-checks">
+        <div class="done-check">✅ Identify whether a research question calls for a Pearson correlation or an independent t-test based on variable types</div>
+        <div class="done-check">✅ Check all assumptions visually (scatterplots, distributions) and statistically (Shapiro-Wilk, Levene's)</div>
+        <div class="done-check">✅ Know what to do if assumptions are violated (Spearman's r, Welch's t-test, Mann-Whitney U)</div>
+        <div class="done-check">✅ Read Jamovi output and extract the values needed for APA-formatted results</div>
+      </div>
+      <div class="ls-highlight">The next page is a <strong>reference card</strong> you can keep open while working in Jamovi — it has assumption checklists and APA reporting templates for both tests.</div>
+      <button class="done-enter-btn" id="l-enter-ref">Open Reference Card →</button>`;
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     7. WIRING — interaction handlers
+  ═══════════════════════════════════════════════════════════════════ */
+  function wireSlide(idx) {
+    const type = SLIDES[idx].type;
+    if (type==='mcq')      wireMCQ(idx);
+    if (type==='scenario') wireScenario(idx);
+    if (type==='visual')   wireVisual(idx, SLIDES[idx].sub);
+    if (type==='jamovi')   wireJamovi(idx, SLIDES[idx].sub);
+    if (type==='done')     document.getElementById('l-enter-ref').addEventListener('click', closeLesson);
+  }
+
+  function wireMCQ(idx) {
+    const d = MCQ_DATA[idx];
+    const opts = document.querySelectorAll('#mcq-opts .mcq-opt');
+    const fb   = document.getElementById('mcq-fb');
+    if (mcqDone[idx]) {
+      opts.forEach((o,i)=>{ o.classList.add('disabled'); if(i===d.correct)o.classList.add('correct'); });
+      fb.textContent = d.fb_c; fb.className='mcq-feedback show correct'; return;
+    }
+    opts.forEach(opt => opt.addEventListener('click', () => {
+      if (mcqDone[idx]) return;
+      const chosen = parseInt(opt.dataset.idx);
+      opts.forEach(o=>o.classList.add('disabled'));
+      if (chosen===d.correct) {
+        opt.classList.add('correct');
+        fb.textContent=d.fb_c; fb.className='mcq-feedback show correct';
+        mcqDone[idx]=true; updateNav();
+      } else {
+        opt.classList.add('wrong'); opts[d.correct].classList.add('correct');
+        fb.textContent=d.fb_w; fb.className='mcq-feedback show wrong';
+        setTimeout(()=>{ opts.forEach(o=>{o.classList.remove('wrong','correct','disabled')}); fb.className='mcq-feedback'; },2400);
+      }
+    }));
+  }
+
+  function wireScenario(idx) {
+    attachScenarioBtns(idx);
+  }
+
+  function attachScenarioBtns(idx) {
+    const corrBtn  = document.getElementById('sc-corr');
+    const ttestBtn = document.getElementById('sc-ttest');
+    const fb       = document.getElementById('sc-fb');
+    const nextWrap = document.getElementById('sc-next-wrap');
+    if (!corrBtn) return;
+
+    function handleChoice(choice) {
+      const st = cState[idx];
+      const sc = SCENARIOS[st.idx];
+      const correct = choice === sc.answer;
+      st.results[st.idx] = correct;
+      corrBtn.disabled=true; ttestBtn.disabled=true;
+      corrBtn.classList.toggle('correct', choice==='corr' && correct);
+      corrBtn.classList.toggle('wrong',   choice==='corr' && !correct);
+      ttestBtn.classList.toggle('correct',choice==='ttest'&& correct);
+      ttestBtn.classList.toggle('wrong',  choice==='ttest'&& !correct);
+      if (!correct) {
+        (choice==='corr'?ttestBtn:corrBtn).classList.add('correct');
+      }
+      if (correct) {
+        fb.textContent = sc.fb;
+        fb.className = 'scenario-feedback show correct';
+      } else {
+        fb.textContent = '❌ Not quite. ' + sc.fb.replace('✅', 'is the correct answer');
+        fb.className = 'scenario-feedback show wrong';
+      }
+      const isLast = st.idx === SCENARIOS.length-1;
+      const btn = document.createElement('button');
+      btn.className='vc-next-btn';
+      btn.textContent = isLast ? 'See results ✓' : 'Next scenario →';
+      btn.addEventListener('click', () => {
+        st.idx++;
+        if (st.idx >= SCENARIOS.length) { st.done=true; updateNav(); }
+        document.getElementById('scenario-area').innerHTML = renderScenario(idx);
+        attachScenarioBtns(idx);
+      });
+      nextWrap.appendChild(btn);
+    }
+
+    corrBtn.addEventListener('click',  () => handleChoice('corr'));
+    ttestBtn.addEventListener('click', () => handleChoice('ttest'));
+  }
+
+  function wireVisual(idx, sub) {
+    attachVCBtns(idx, sub);
+  }
+
+  function attachVCBtns(idx, sub) {
+    const data = { lin:LIN_DATA, hom:HOM_DATA, nrm:NRM_DATA, grp:GRP_DATA }[sub];
+    const btns = document.querySelectorAll('#vc-area .vc-btn');
+    const fb   = document.getElementById('vc-fb');
+    const nextWrap = document.getElementById('vc-next-wrap');
+    if (!btns.length) return;
+
+    btns.forEach(btn => btn.addEventListener('click', () => {
+      const st = cState[idx];
+      const item = data[st.idx];
+      const ans = btn.dataset.ans;
+      const correct = ans === item.answer;
+      st.results[st.idx] = correct;
+      btns.forEach(b=>b.disabled=true);
+      btn.classList.add(correct?'correct':'wrong');
+      if (!correct) btns.forEach(b=>{ if(b.dataset.ans===item.answer)b.classList.add('correct'); });
+      fb.textContent = correct ? item.fb_c : item.fb_w;
+      fb.className = 'vc-feedback show ' + (correct?'correct':'wrong');
+      const isLast = st.idx === data.length-1;
+      const nextBtn = document.createElement('button');
+      nextBtn.className='vc-next-btn';
+      nextBtn.textContent = isLast ? 'See results ✓' : 'Next plot →';
+      nextBtn.addEventListener('click', ()=>{
+        st.idx++;
+        if (st.idx >= data.length) { st.done=true; updateNav(); }
+        document.getElementById('vc-area').innerHTML = renderVisualChallenge(idx, sub);
+        attachVCBtns(idx, sub);
+      });
+      nextWrap.appendChild(nextBtn);
+    }));
+  }
+
+  function wireJamovi(idx, sub) {
+    const containerId = sub==='corr' ? 'j-corr-content' : 'j-ttest-content';
+    const st = cState[idx] || (cState[idx] = { clicked: new Set(), done:false });
+    const needed = sub==='corr' ? ['r','p','df'] : ['t','df','p','d','lev'];
+
+    document.querySelectorAll(`#${containerId} .j-clickable`).forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.dataset.jkey;
+        if (!key) return;
+        st.clicked.add(key);
+        if (needed.every(k => st.clicked.has(k))) { st.done=true; updateNav(); }
+        // re-render to update callout + sentence
+        const wrap = document.getElementById(containerId);
+        if (wrap) { wrap.innerHTML = sub==='corr' ? renderJamoviCorr() : renderJamoviTtest(); wireJamovi(idx, sub); }
+      });
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     8. NAVIGATION
+  ═══════════════════════════════════════════════════════════════════ */
+  function canAdvance() {
+    const s = SLIDES[current];
+    if (s.type==='mcq')      return !!mcqDone[current];
+    if (s.type==='scenario') return !!(cState[current]&&cState[current].done);
+    if (s.type==='visual')   return !!(cState[current]&&cState[current].done);
+    if (s.type==='jamovi')   return !!(cState[current]&&cState[current].done);
+    return true;
+  }
+
+  function updateHeader() {
+    document.getElementById('lesson-step-label').textContent = `Step ${current+1} of ${TOTAL}`;
+    document.getElementById('lesson-progress-fill').style.width = `${(current/(TOTAL-1))*100}%`;
+    document.getElementById('lesson-dots').innerHTML = SLIDES.map((_,i)=>{
+      let c='l-dot'; if(i<current)c+=' done'; else if(i===current)c+=' active';
+      return `<div class="${c}"></div>`;
+    }).join('');
+  }
+
+  function updateNav() {
+    const prev = document.getElementById('l-prev');
+    const next = document.getElementById('l-next');
+    prev.style.visibility = current===0 ? 'hidden':'visible';
+    if (current===TOTAL-1) { next.style.display='none'; }
+    else {
+      next.style.display='';
+      next.textContent = current===TOTAL-2 ? 'Finish →' : 'Next →';
+      next.disabled = !canAdvance();
+    }
+  }
+
+  function renderSlide() {
+    const content = document.getElementById('lesson-content');
+    content.classList.add('fading');
+    setTimeout(()=>{
+      content.innerHTML = getContent(current);
+      content.classList.remove('fading');
+      updateHeader();
+      updateNav();
+      wireSlide(current);
+    },200);
+  }
+
+  function closeLesson() {
+    const overlay = document.getElementById('lesson-overlay');
+    overlay.classList.add('fade-out');
+    setTimeout(()=>{ overlay.style.display='none'; document.getElementById('ref-card').style.display='block'; },500);
+  }
+
+  document.getElementById('l-prev').addEventListener('click', ()=>{ if(current>0){current--;renderSlide();} });
+  document.getElementById('l-next').addEventListener('click', ()=>{ if(canAdvance()&&current<TOTAL-1){current++;renderSlide();} });
+  document.getElementById('l-skip').addEventListener('click', ()=>{ if(confirm('Skip the lesson and go straight to the reference card?'))closeLesson(); });
+  document.getElementById('ref-restart-btn').addEventListener('click', ()=>{
+    current=0; mcqDone={}; cState={};
+    document.getElementById('ref-card').style.display='none';
+    const ov=document.getElementById('lesson-overlay');
+    ov.classList.remove('fade-out'); ov.style.display='flex';
+    renderSlide();
+  });
+
+  renderSlide();
+})();
+</script>
+</body>
+</html>
