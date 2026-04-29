@@ -686,8 +686,8 @@
 
   function slide1() {
     const r0  = genCorr(20,  0.02, 40);
-    const r3  = genCorr(21,  0.35, 40);
-    const r7  = genCorr(22,  0.72, 40);
+    const r3  = genCorr(21,  0.25, 40);
+    const r7  = genCorr(22,  0.45, 40);
     const r95 = genCorr(23,  0.96, 40);
     return `
       <div class="ls-title">Pearson Correlation</div>
@@ -695,8 +695,8 @@
       <div class="ls-body">A Pearson correlation tells you two things about the relationship between two variables: its <strong>direction</strong> (positive or negative) and its <strong>strength</strong> (0 = none, 1 = perfect). The statistic is called <em>r</em>.</div>
       <div class="mini-scatter-grid">
         <div><div>${miniScatterSVG(r0,'0')}</div><div class="mini-scatter-label">No relationship</div></div>
-        <div><div>${miniScatterSVG(r3,'.35')}</div><div class="mini-scatter-label">Weak positive</div></div>
-        <div><div>${miniScatterSVG(r7,'.72')}</div><div class="mini-scatter-label">Moderate positive</div></div>
+        <div><div>${miniScatterSVG(r3,'.25')}</div><div class="mini-scatter-label">Weak positive</div></div>
+        <div><div>${miniScatterSVG(r7,'.45')}</div><div class="mini-scatter-label">Moderate positive</div></div>
         <div><div>${miniScatterSVG(r95,'.96')}</div><div class="mini-scatter-label">Strong positive</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
@@ -727,7 +727,7 @@
     return `
       <div class="ls-title">Independent Samples T-Test</div>
       <div class="ls-subtitle">Comparing means between two groups</div>
-      <div class="ls-body">When you have a <strong>continuous outcome</strong> (DV) and want to compare it across <strong>two groups</strong> (dichotomous IV), the t-test is the right tool. It asks: "Is the mean of Group A significantly different from the mean of Group B?"</div>
+      <div class="ls-body">When you have a <strong>continuous outcome</strong> (DV) and want to compare it across <strong>two groups</strong> (dichotomous IV), the t-test is the right tool. It asks: "Is the mean of Group A significantly different from the mean of Group B?" Take note that the dotted lines below represent the means of each group and the space between them is the distance.</div>
       <div class="two-groups-wrap">${twoGroupsSVG()}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px">
         <div>
@@ -748,7 +748,7 @@
             <tr><td>0.50 – 0.79</td><td>Medium</td></tr>
             <tr><td>≥ 0.80</td><td>Large</td></tr>
           </table>
-          <div class="ls-highlight" style="margin-top:8px;font-size:.82rem">⚠️ Cohen's d is <strong>always reported as a positive value</strong>. Check your descriptives to determine which group had the higher mean.</div>
+          <div class="ls-highlight" style="margin-top:8px;font-size:.82rem">⚠️ Cohen's d is <strong>a measure of how large the difference is.</strong>. Check your descriptives to determine which group had the higher mean.</div>
         </div>
       </div>`;
   }
@@ -764,7 +764,7 @@
         <tr><td>The question</td><td>"As X goes up, does Y tend to go up or down?"</td><td>"Is Group A higher or lower than Group B?"</td></tr>
         <tr><td>What it produces</td><td>r (strength + direction)</td><td>t statistic + Cohen's d</td></tr>
         <tr><td>Unique assumption</td><td><span class="comp-tag purple">Linear relationship</span></td><td><span class="comp-tag blue">IV must be dichotomous</span></td></tr>
-        <tr><td>Shared assumptions</td><td colspan="2" style="text-align:center;background:#f7fafc;color:#4a5568">Normality · Homoscedasticity · Independence</td></tr>
+        <tr><td>Shared assumptions</td><td colspan="2" style="text-align:center;background:#f7fafc;color:#4a5568">Normality · Homoscedasticity (scatterplot for correlation, Levene's test for t-tests) · Independence</td></tr>
         <tr><td>If violated: homosc.</td><td>Use Spearman's r</td><td>Use Welch's t-test</td></tr>
         <tr><td>Effect size</td><td>r <em>is</em> the effect size</td><td>Need separate Cohen's d</td></tr>
       </table>
@@ -868,11 +868,10 @@
       <table class="viol-table">
         <tr><th>Violated assumption</th><th>What you'll see</th><th>What to do</th></tr>
         <tr><td>Normality</td><td>Shapiro-Wilk p &lt; .05, skewed histogram or outliers in boxplot</td><td>Correlation → <strong>Spearman's r</strong><br>T-test → <strong>Mann-Whitney U</strong></td></tr>
-        <tr><td>Homoscedasticity</td><td>Fan-shaped scatterplot, Levene's test p &lt; .05</td><td>T-test → <strong>Welch's t-test</strong> (tick in Jamovi)<br>Correlation → consider Spearman's</td></tr>
+        <tr><td>Homoscedasticity</td><td>Fan-shaped scatterplot (correlation), Levene's test p &lt; .05 (t.test)</td><td>T-test → <strong>Welch's t-test</strong> (tick in Jamovi)<br>Correlation → consider Spearman's</td></tr>
         <tr><td>Linearity</td><td>Curved scatterplot (U, J, arch shapes)</td><td>Use <strong>Spearman's r</strong> instead of Pearson</td></tr>
         <tr><td>Independence</td><td>Same participants in multiple groups, shared instructor/environment</td><td>Study design issue — <strong>cannot proceed</strong>. Redesign or use paired/repeated measures test.</td></tr>
       </table>
-      <div class="ls-highlight">💡 <strong>Larger samples (&gt; 30) are more robust</strong> to normality violations due to the Central Limit Theorem — but it is still good practice to check all assumptions and report what you found.</div>`;
   }
 
   function slideMCQ(idx) {
@@ -927,7 +926,7 @@
     const done_count = needed.filter(k=>clicked.has(k)).length;
     const callout = {
       r:`<div class="j-callout j-callout-r show"><strong>r = .17</strong> — This is your correlation coefficient. It goes into your APA write-up as the r value. Positive sign = positive relationship. |r| = .17 → <em>negligible to weak</em> effect size.</div>`,
-      p:`<div class="j-callout j-callout-p show"><strong>p = .013</strong> — Your significance value. Compare to α = .05. Because .013 &lt; .05, this is <em>statistically significant</em>. In APA: p = .013</div>`,
+      p:`<div class="j-callout j-callout-p show"><strong>p = .013</strong> — Your significance value. Compare to α = .05. Because .013 &lt; .05, this is <em>statistically significant</em>. In APA: <i>p</i> = .013</div>`,
       n:`<div class="j-callout j-callout-n show"><strong>N = 226</strong> — Your sample size. Degrees of freedom for correlation = N − 2 = 224. This is the number that goes in brackets: r(<strong>224</strong>).</div>`,
     };
     const active = [...clicked].pop() || '';
@@ -948,6 +947,7 @@
               <td><span class="${cls('p')}" data-jkey="p" id="jc-p">.013</span></td>
             </tr></tbody>
           </table>
+          <br>
           <div class="j-note"><em>Note.</em> N = <span class="${cls('n')}" data-jkey="n" id="jc-n">226</span> &nbsp;· Variable: happiness_t1</div>
         </div>
         <div class="j-progress">${done_count}/3 values explored</div>
